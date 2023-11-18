@@ -11,8 +11,10 @@ from linebot.models import *
 #======python的函數庫==========
 import tempfile, os
 import datetime
-import openai
+# import openai
 import time
+import crawl
+import db
 #======python的函數庫==========
 
 app = Flask(__name__)
@@ -22,16 +24,18 @@ line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 # Channel Secret
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 # OPENAI API Key初始化設定
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# openai.api_key = os.getenv('OPENAI_API_KEY')
 
+UDN = crawl.News.scrape(crawl.News,'https://udn.com/news/cate/2/6638')
+db.db_obj.insert_data(db.db_obj,UDN)
 
-def GPT_response(text):
-    # 接收回應
-    response = openai.Completion.create(model="text-davinci-003", prompt=text, temperature=0.5, max_tokens=500)
-    print(response)
-    # 重組回應
-    answer = response['choices'][0]['text'].replace('。','')
-    return answer
+# def GPT_response(text):
+#     # 接收回應
+#     response = openai.Completion.create(model="text-davinci-003", prompt=text, temperature=0.5, max_tokens=500)
+#     print(response)
+#     # 重組回應
+#     answer = response['choices'][0]['text'].replace('。','')
+#     return answer
 
 
 # 監聽所有來自 /callback 的 Post Request
@@ -55,9 +59,12 @@ def callback():
 def handle_message(event):
     msg = event.message.text
     try:
-        GPT_answer = GPT_response(msg)
-        print(GPT_answer)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(GPT_answer))
+        if msg == '新聞' or 'news':
+            result = db.db_obj.query_all(db.db_obj)
+        return result
+        # GPT_answer = GPT_response(msg)
+        # print(GPT_answer)
+        # line_bot_api.reply_message(event.reply_token, TextSendMessage(GPT_answer))
     except:
         line_bot_api.reply_message(event.reply_token, TextSendMessage('你所使用的OPENAI API key額度可能已經超過，請於後台Log內確認錯誤訊息'))
         
